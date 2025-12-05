@@ -46,6 +46,10 @@ BALL_SPRITE = bytearray([
     0x00, 0x00, 0x00, 0x01, 0x03, 0x07, 0x0F, 0x0F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x0F, 0x0F, 0x07, 0x03, 0x01, 0x00, 0x00, 0x00,
 ])
 
+# Display constants
+CHAR_WIDTH = 6  # Approximate pixel width per character
+FADE_STEP = 25  # Brightness change per frame for fade effects
+
 # Game states
 STATE_IDLE = 0
 STATE_SHAKING = 1
@@ -159,12 +163,11 @@ class Magic8Ball:
             else:
                 if current_line:
                     lines.append(current_line)
-                if len(word) > max_width:
-                    # Word is too long, split it
+                # Handle words that are too long - split recursively
+                while len(word) > max_width:
                     lines.append(word[:max_width])
-                    current_line = word[max_width:]
-                else:
-                    current_line = word
+                    word = word[max_width:]
+                current_line = word
         
         if current_line:
             lines.append(current_line)
@@ -181,7 +184,7 @@ class Magic8Ball:
         start_y = (SCREEN_HEIGHT - total_height) // 2
         
         for i, line in enumerate(lines):
-            text_width = len(line) * 6  # Approximate character width
+            text_width = len(line) * CHAR_WIDTH
             x = (SCREEN_WIDTH - text_width) // 2
             y = start_y + i * line_height
             
@@ -213,14 +216,14 @@ class Magic8Ball:
                 self.fade_level = 255
         
         elif self.state == STATE_FADING_OUT:
-            self.fade_level -= 25
+            self.fade_level -= FADE_STEP
             if self.fade_level <= 0:
                 self.fade_level = 0
                 self.state = STATE_FADING_IN
                 self.frame_count = 0
         
         elif self.state == STATE_FADING_IN:
-            self.fade_level += 25
+            self.fade_level += FADE_STEP
             if self.fade_level >= 255:
                 self.fade_level = 255
                 self.state = STATE_SHOWING_ANSWER
