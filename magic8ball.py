@@ -92,6 +92,8 @@ class Magic8Ball:
         else:
             # Reduced brightness - still use drawSprite but with dithering pattern
             # Create a dithered version by drawing at reduced opacity
+            # Use 128 (50% brightness) as threshold: above this, sprite is visible enough
+            # to draw normally; below this, use heavy dithering to simulate fade effect
             if brightness > 128:
                 thumby.display.drawSprite(BALL_SPRITE, x, y, BALL_WIDTH, BALL_HEIGHT)
             else:
@@ -113,7 +115,7 @@ class Magic8Ball:
         circle_radius = 6
         
         # Draw white circle using optimized approach
-        if brightness >= 255 or brightness > 128:
+        if brightness > 128:
             # Use filled circle approach - draw horizontal lines
             for dy in range(-circle_radius, circle_radius + 1):
                 # Calculate the width of the circle at this y position
