@@ -1,6 +1,7 @@
 import thumby
 import time
 import random
+import math
 
 # Display dimensions
 SCREEN_WIDTH = 72
@@ -120,7 +121,11 @@ class Magic8Ball:
         # Draw white circle using optimized approach
         for dy in range(-circle_radius, circle_radius + 1):
             # Calculate the width of the circle at this y position (once per dy)
-            dx = int((circle_radius * circle_radius - dy * dy) ** 0.5)
+            # Protect against domain errors when dy is at circle boundary
+            dx_squared = circle_radius * circle_radius - dy * dy
+            if dx_squared < 0:
+                continue
+            dx = int(math.sqrt(dx_squared))
             
             if brightness > 128:
                 # Use filled circle approach - draw horizontal lines
@@ -130,12 +135,14 @@ class Magic8Ball:
                     if 0 <= px < SCREEN_WIDTH and 0 <= py < SCREEN_HEIGHT:
                         thumby.display.setPixel(px, py, 0)
             elif brightness > 0:
-                # Dither white circle for low brightness
-                for x_offset in range(-dx, dx + 1, 2):
-                    px = center_x + x_offset
-                    py = center_y + dy
-                    if 0 <= px < SCREEN_WIDTH and 0 <= py < SCREEN_HEIGHT:
-                        thumby.display.setPixel(px, py, 0)
+                # Dither white circle for low brightness using checkerboard pattern
+                for x_offset in range(-dx, dx + 1):
+                    # Use checkerboard pattern to maintain circle shape while reducing brightness
+                    if (x_offset + dy) % 2 == 0:
+                        px = center_x + x_offset
+                        py = center_y + dy
+                        if 0 <= px < SCREEN_WIDTH and 0 <= py < SCREEN_HEIGHT:
+                            thumby.display.setPixel(px, py, 0)
         
         # Draw "8" in the circle
         if brightness >= 128:  # Only draw 8 if reasonably visible
