@@ -33,18 +33,17 @@ MAGIC_8_BALL_PHRASES = [
     "Very doubtful"
 ]
 
-# 8-ball sprite (top view) - 20x20 pixels
-# Represents the black 8-ball with white "8" marking
+# 8-ball sprite (top view) - 24x24 pixels circle
+# Represents the black 8-ball with white circle and "8" marking
+BALL_WIDTH = 24
+BALL_HEIGHT = 24
 BALL_SPRITE = bytearray([
-    0x00, 0xE0, 0xF8, 0xFC, 0xFE, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE, 0xFE, 0xFC, 0xF8, 0xE0, 0x00,
-    0x00, 0x07, 0x1F, 0x3F, 0x7F, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F, 0x7F, 0x3F, 0x1F, 0x07, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-])
-
-# White circle for "8" center - 8x8 pixels
-EIGHT_SPRITE = bytearray([
-    0x00, 0x00, 0x00, 0x18, 0x18, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    # Row 0-7
+    0x00, 0x00, 0xC0, 0xF0, 0xF8, 0xFC, 0xFE, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE, 0xFE, 0xFC, 0xF8, 0xF0, 0xC0, 0x00, 0x00,
+    # Row 8-15
+    0x00, 0x1F, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F, 0x1F, 0x00,
+    # Row 16-23
+    0x00, 0x00, 0x00, 0x01, 0x03, 0x07, 0x0F, 0x0F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x0F, 0x0F, 0x07, 0x03, 0x01, 0x00, 0x00, 0x00,
 ])
 
 # Game states
@@ -62,8 +61,8 @@ class Magic8Ball:
         self.shake_offset_x = 0
         self.shake_offset_y = 0
         self.fade_level = 0
-        self.ball_x = (SCREEN_WIDTH - 20) // 2
-        self.ball_y = (SCREEN_HEIGHT - 20) // 2
+        self.ball_x = (SCREEN_WIDTH - BALL_WIDTH) // 2
+        self.ball_y = (SCREEN_HEIGHT - BALL_HEIGHT) // 2
         
     def check_any_button(self):
         """Check if any button or D-pad is pressed"""
@@ -85,9 +84,9 @@ class Magic8Ball:
         # Draw the main ball sprite
         if brightness >= 255:
             # Full brightness - draw normally
-            for sprite_y in range(20):
-                for sprite_x in range(20):
-                    byte_index = (sprite_y // 8) * 20 + sprite_x
+            for sprite_y in range(BALL_HEIGHT):
+                for sprite_x in range(BALL_WIDTH):
+                    byte_index = (sprite_y // 8) * BALL_WIDTH + sprite_x
                     bit_index = sprite_y % 8
                     if byte_index < len(BALL_SPRITE):
                         if BALL_SPRITE[byte_index] & (1 << bit_index):
@@ -98,9 +97,9 @@ class Magic8Ball:
         else:
             # Reduced brightness - draw with dithering
             threshold = 255 - brightness
-            for sprite_y in range(20):
-                for sprite_x in range(20):
-                    byte_index = (sprite_y // 8) * 20 + sprite_x
+            for sprite_y in range(BALL_HEIGHT):
+                for sprite_x in range(BALL_WIDTH):
+                    byte_index = (sprite_y // 8) * BALL_WIDTH + sprite_x
                     bit_index = sprite_y % 8
                     if byte_index < len(BALL_SPRITE):
                         if BALL_SPRITE[byte_index] & (1 << bit_index):
@@ -111,21 +110,29 @@ class Magic8Ball:
                                 if 0 <= px < SCREEN_WIDTH and 0 <= py < SCREEN_HEIGHT:
                                     thumby.display.setPixel(px, py, 1)
         
-        # Draw the "8" in the center (white circle)
-        center_x = x + 6
-        center_y = y + 6
-        if brightness >= 255:
-            # Draw white circle for "8"
-            for cy in range(8):
-                for cx in range(8):
-                    byte_index = (cy // 8) * 8 + cx
-                    bit_index = cy % 8
-                    if byte_index < len(EIGHT_SPRITE):
-                        if not (EIGHT_SPRITE[byte_index] & (1 << bit_index)):
-                            px = center_x + cx
-                            py = center_y + cy
-                            if 0 <= px < SCREEN_WIDTH and 0 <= py < SCREEN_HEIGHT:
+        # Draw the white circle with "8" in the center
+        center_x = x + BALL_WIDTH // 2
+        center_y = y + BALL_HEIGHT // 2
+        circle_radius = 6
+        
+        # Draw white circle
+        for cy in range(-circle_radius, circle_radius + 1):
+            for cx in range(-circle_radius, circle_radius + 1):
+                if cx * cx + cy * cy <= circle_radius * circle_radius:
+                    px = center_x + cx
+                    py = center_y + cy
+                    if 0 <= px < SCREEN_WIDTH and 0 <= py < SCREEN_HEIGHT:
+                        if brightness >= 255:
+                            thumby.display.setPixel(px, py, 0)
+                        elif brightness > 0:
+                            # Dither white circle too
+                            if (cx + cy) % 2 == 0 or brightness > 128:
                                 thumby.display.setPixel(px, py, 0)
+        
+        # Draw "8" in the circle
+        if brightness >= 128:  # Only draw 8 if reasonably visible
+            # Simple "8" using pixels - two stacked circles
+            thumby.display.drawText("8", center_x - 2, center_y - 3, 1)
     
     def shake_animation(self):
         """Perform subtle shake animation"""
