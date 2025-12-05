@@ -97,17 +97,20 @@ class Magic8Ball:
             if brightness > 128:
                 thumby.display.drawSprite(BALL_SPRITE, x, y, BALL_WIDTH, BALL_HEIGHT)
             else:
-                # For very low brightness, use checkerboard dithering
-                for sprite_y in range(0, BALL_HEIGHT, 2):
-                    for sprite_x in range(0, BALL_WIDTH, 2):
-                        byte_index = (sprite_y // 8) * BALL_WIDTH + sprite_x
-                        bit_index = sprite_y % 8
-                        if byte_index < len(BALL_SPRITE):
-                            if BALL_SPRITE[byte_index] & (1 << bit_index):
-                                px = x + sprite_x
-                                py = y + sprite_y
-                                if 0 <= px < SCREEN_WIDTH and 0 <= py < SCREEN_HEIGHT:
-                                    thumby.display.setPixel(px, py, 1)
+                # For very low brightness, use sparse checkerboard dithering
+                # Draw every other pixel in a checkerboard pattern to simulate fading
+                for sprite_y in range(BALL_HEIGHT):
+                    for sprite_x in range(BALL_WIDTH):
+                        # Checkerboard pattern: only draw if (x + y) is even
+                        if (sprite_x + sprite_y) % 2 == 0:
+                            byte_index = (sprite_y // 8) * BALL_WIDTH + sprite_x
+                            bit_index = sprite_y % 8
+                            if byte_index < len(BALL_SPRITE):
+                                if BALL_SPRITE[byte_index] & (1 << bit_index):
+                                    px = x + sprite_x
+                                    py = y + sprite_y
+                                    if 0 <= px < SCREEN_WIDTH and 0 <= py < SCREEN_HEIGHT:
+                                        thumby.display.setPixel(px, py, 1)
         
         # Draw the white circle with "8" in the center
         center_x = x + BALL_WIDTH // 2
@@ -115,20 +118,19 @@ class Magic8Ball:
         circle_radius = 6
         
         # Draw white circle using optimized approach
-        if brightness > 128:
-            # Use filled circle approach - draw horizontal lines
-            for dy in range(-circle_radius, circle_radius + 1):
-                # Calculate the width of the circle at this y position
-                dx = int((circle_radius * circle_radius - dy * dy) ** 0.5)
+        for dy in range(-circle_radius, circle_radius + 1):
+            # Calculate the width of the circle at this y position (once per dy)
+            dx = int((circle_radius * circle_radius - dy * dy) ** 0.5)
+            
+            if brightness > 128:
+                # Use filled circle approach - draw horizontal lines
                 for x_offset in range(-dx, dx + 1):
                     px = center_x + x_offset
                     py = center_y + dy
                     if 0 <= px < SCREEN_WIDTH and 0 <= py < SCREEN_HEIGHT:
                         thumby.display.setPixel(px, py, 0)
-        elif brightness > 0:
-            # Dither white circle for low brightness
-            for dy in range(-circle_radius, circle_radius + 1):
-                dx = int((circle_radius * circle_radius - dy * dy) ** 0.5)
+            elif brightness > 0:
+                # Dither white circle for low brightness
                 for x_offset in range(-dx, dx + 1, 2):
                     px = center_x + x_offset
                     py = center_y + dy
