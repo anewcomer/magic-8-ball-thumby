@@ -85,53 +85,64 @@ class Magic8Ball:
         x = self.ball_x + offset_x
         y = self.ball_y + offset_y
         
-        # Draw the main ball sprite
+        # Draw the main ball sprite using fast drawSprite method
         if brightness >= 255:
-            # Full brightness - draw normally
-            for sprite_y in range(BALL_HEIGHT):
-                for sprite_x in range(BALL_WIDTH):
-                    byte_index = (sprite_y // 8) * BALL_WIDTH + sprite_x
-                    bit_index = sprite_y % 8
-                    if byte_index < len(BALL_SPRITE):
-                        if BALL_SPRITE[byte_index] & (1 << bit_index):
-                            px = x + sprite_x
-                            py = y + sprite_y
-                            if 0 <= px < SCREEN_WIDTH and 0 <= py < SCREEN_HEIGHT:
-                                thumby.display.setPixel(px, py, 1)
+            # Full brightness - draw normally using optimized drawSprite
+            thumby.display.drawSprite(BALL_SPRITE, x, y, BALL_WIDTH, BALL_HEIGHT)
         else:
-            # Reduced brightness - draw with dithering
-            threshold = 255 - brightness
-            for sprite_y in range(BALL_HEIGHT):
-                for sprite_x in range(BALL_WIDTH):
-                    byte_index = (sprite_y // 8) * BALL_WIDTH + sprite_x
-                    bit_index = sprite_y % 8
-                    if byte_index < len(BALL_SPRITE):
-                        if BALL_SPRITE[byte_index] & (1 << bit_index):
-                            # Dither pattern based on position and brightness
-                            if (sprite_x + sprite_y) % 2 == 0 or brightness > 128:
-                                px = x + sprite_x
-                                py = y + sprite_y
-                                if 0 <= px < SCREEN_WIDTH and 0 <= py < SCREEN_HEIGHT:
-                                    thumby.display.setPixel(px, py, 1)
+            # Reduced brightness - still use drawSprite but with dithering pattern
+            # Create a dithered version by drawing at reduced opacity
+            # Use 128 as threshold (brightness range 0-255): above this, sprite is visible enough
+            # to draw normally; at or below, use heavy dithering to simulate fade effect
+            if brightness > 128:
+                thumby.display.drawSprite(BALL_SPRITE, x, y, BALL_WIDTH, BALL_HEIGHT)
+            else:
+                # For very low brightness, use sparse checkerboard dithering
+                # Draw every other pixel in a checkerboard pattern to simulate fading
+                for sprite_y in range(BALL_HEIGHT):
+                    for sprite_x in range(BALL_WIDTH):
+                        # Checkerboard pattern: only draw if (x + y) is even
+                        if (sprite_x + sprite_y) % 2 == 0:
+                            byte_index = (sprite_y // 8) * BALL_WIDTH + sprite_x
+                            bit_index = sprite_y % 8
+                            if byte_index < len(BALL_SPRITE):
+                                if BALL_SPRITE[byte_index] & (1 << bit_index):
+                                    px = x + sprite_x
+                                    py = y + sprite_y
+                                    if 0 <= px < SCREEN_WIDTH and 0 <= py < SCREEN_HEIGHT:
+                                        thumby.display.setPixel(px, py, 1)
         
         # Draw the white circle with "8" in the center
         center_x = x + BALL_WIDTH // 2
         center_y = y + BALL_HEIGHT // 2
         circle_radius = 6
         
-        # Draw white circle
-        for cy in range(-circle_radius, circle_radius + 1):
-            for cx in range(-circle_radius, circle_radius + 1):
-                if cx * cx + cy * cy <= circle_radius * circle_radius:
-                    px = center_x + cx
-                    py = center_y + cy
+        # Draw white circle using optimized approach
+        for dy in range(-circle_radius, circle_radius + 1):
+            # Calculate the width of the circle at this y position (once per dy)
+            # Protect against domain errors when dy is at circle boundary
+            dx_squared = circle_radius * circle_radius - dy * dy
+            if dx_squared < 0:
+                continue
+            # Use max() for additional floating-point precision safety
+            dx = int(max(0, dx_squared) ** 0.5)
+            
+            if brightness > 128:
+                # Use filled circle approach - draw horizontal lines
+                for x_offset in range(-dx, dx + 1):
+                    px = center_x + x_offset
+                    py = center_y + dy
                     if 0 <= px < SCREEN_WIDTH and 0 <= py < SCREEN_HEIGHT:
-                        if brightness >= 255:
+                        thumby.display.setPixel(px, py, 0)
+            elif brightness > 0:
+                # Dither white circle for low brightness using checkerboard pattern
+                for x_offset in range(-dx, dx + 1):
+                    # Use checkerboard pattern to maintain circle shape while reducing brightness
+                    if (x_offset + dy) % 2 == 0:
+                        px = center_x + x_offset
+                        py = center_y + dy
+                        if 0 <= px < SCREEN_WIDTH and 0 <= py < SCREEN_HEIGHT:
                             thumby.display.setPixel(px, py, 0)
-                        elif brightness > 0:
-                            # Dither white circle too
-                            if (cx + cy) % 2 == 0 or brightness > 128:
-                                thumby.display.setPixel(px, py, 0)
         
         # Draw "8" in the circle
         if brightness >= 128:  # Only draw 8 if reasonably visible
@@ -200,6 +211,9 @@ class Magic8Ball:
     
     def update(self):
         """Update game state"""
+        # Update input state to ensure button presses are detected
+        thumby.inputUpdate()
+        
         if self.state == STATE_IDLE:
             if self.check_any_button():
                 # Start shaking
