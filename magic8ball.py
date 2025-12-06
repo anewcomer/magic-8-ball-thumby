@@ -1,7 +1,6 @@
 import thumby
 import time
 import random
-import math
 
 # Display dimensions
 SCREEN_WIDTH = 72
@@ -125,7 +124,7 @@ class Magic8Ball:
             dx_squared = circle_radius * circle_radius - dy * dy
             if dx_squared < 0:
                 continue
-            dx = int(math.sqrt(dx_squared))
+            dx = int(dx_squared ** 0.5)
             
             if brightness > 128:
                 # Use filled circle approach - draw horizontal lines
