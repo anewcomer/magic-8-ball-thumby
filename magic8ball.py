@@ -124,7 +124,8 @@ class Magic8Ball:
             dx_squared = circle_radius * circle_radius - dy * dy
             if dx_squared < 0:
                 continue
-            dx = int(dx_squared ** 0.5)
+            # Use max() for additional floating-point precision safety
+            dx = int(max(0, dx_squared) ** 0.5)
             
             if brightness > 128:
                 # Use filled circle approach - draw horizontal lines
