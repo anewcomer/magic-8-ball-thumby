@@ -79,14 +79,11 @@ def draw_ball_sprite(x, y):
 
 # Display constants
 CHAR_WIDTH = 6  # Approximate pixel width per character
-FADE_STEP = 25  # Brightness change per frame for fade effects
 
 # Game states
 STATE_IDLE = 0
 STATE_SHAKING = 1
-STATE_FADING_OUT = 2
-STATE_SHOWING_ANSWER = 3
-STATE_FADING_IN = 4
+STATE_SHOWING_ANSWER = 2
 
 def update_input_state():
     """Call thumby.inputUpdate when available for compatibility."""
@@ -101,7 +98,6 @@ class Magic8Ball:
         self.frame_count = 0
         self.shake_offset_x = 0
         self.shake_offset_y = 0
-        self.fade_level = 0
         self.ball_x = (SCREEN_WIDTH - BALL_WIDTH) // 2
         self.ball_y = (SCREEN_HEIGHT - BALL_HEIGHT) // 2
         
@@ -262,22 +258,8 @@ class Magic8Ball:
         elif self.state == STATE_SHAKING:
             self.frame_count += 1
             if self.frame_count >= 20:  # Shake for about 20 frames
-                self.state = STATE_FADING_OUT
-                self.frame_count = 0
-                self.fade_level = 255
-        
-        elif self.state == STATE_FADING_OUT:
-            self.fade_level -= FADE_STEP
-            if self.fade_level <= 0:
-                self.fade_level = 0
-                self.state = STATE_FADING_IN
-                self.frame_count = 0
-        
-        elif self.state == STATE_FADING_IN:
-            self.fade_level += FADE_STEP
-            if self.fade_level >= 255:
-                self.fade_level = 255
                 self.state = STATE_SHOWING_ANSWER
+                self.frame_count = 0
         
         elif self.state == STATE_SHOWING_ANSWER:
             if self.check_any_button():
@@ -297,13 +279,9 @@ class Magic8Ball:
             self.shake_animation()
             self.draw_ball(self.shake_offset_x, self.shake_offset_y)
         
-        elif self.state == STATE_FADING_OUT:
-            self.draw_ball(brightness=self.fade_level)
-        
-        elif self.state == STATE_FADING_IN or self.state == STATE_SHOWING_ANSWER:
+        elif self.state == STATE_SHOWING_ANSWER:
             lines = self.wrap_text(self.current_phrase)
-            brightness = self.fade_level if self.state == STATE_FADING_IN else 255
-            self.draw_text_centered(lines, brightness)
+            self.draw_text_centered(lines, 255)
         
         thumby.display.update()
 
