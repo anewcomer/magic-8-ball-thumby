@@ -192,7 +192,7 @@ class Magic8Ball:
         ]
         self.shake_offset_x, self.shake_offset_y = shake_patterns[self.frame_count % len(shake_patterns)]
     
-    def wrap_text(self, text, max_width=10):
+    def wrap_text(self, text, max_width=12):
         """Wrap text to fit within max_width characters per line"""
         words = text.split()
         lines = []
