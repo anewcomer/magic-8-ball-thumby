@@ -46,6 +46,37 @@ BALL_SPRITE = bytearray([
     0x00, 0x00, 0x00, 0x01, 0x03, 0x07, 0x0F, 0x0F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x0F, 0x0F, 0x07, 0x03, 0x01, 0x00, 0x00, 0x00,
 ])
 
+_ball_sprite_obj = None
+_drawsprite_extended_signature = None
+
+def draw_ball_sprite(x, y):
+    """Compatibility wrapper for different drawSprite signatures."""
+    global _ball_sprite_obj, _drawsprite_extended_signature
+
+    if _drawsprite_extended_signature is None:
+        try:
+            thumby.display.drawSprite(BALL_SPRITE, x, y, BALL_WIDTH, BALL_HEIGHT)
+        except TypeError:
+            _drawsprite_extended_signature = False
+        else:
+            _drawsprite_extended_signature = True
+            return
+
+    if _drawsprite_extended_signature:
+        thumby.display.drawSprite(BALL_SPRITE, x, y, BALL_WIDTH, BALL_HEIGHT)
+        return
+
+    sprite_cls = getattr(thumby, "Sprite", None)
+    if sprite_cls is None:
+        return
+
+    if _ball_sprite_obj is None:
+        _ball_sprite_obj = sprite_cls(BALL_WIDTH, BALL_HEIGHT, BALL_SPRITE)
+
+    _ball_sprite_obj.x = x
+    _ball_sprite_obj.y = y
+    thumby.display.drawSprite(_ball_sprite_obj)
+
 # Display constants
 CHAR_WIDTH = 6  # Approximate pixel width per character
 FADE_STEP = 25  # Brightness change per frame for fade effects
@@ -56,6 +87,12 @@ STATE_SHAKING = 1
 STATE_FADING_OUT = 2
 STATE_SHOWING_ANSWER = 3
 STATE_FADING_IN = 4
+
+def update_input_state():
+    """Call thumby.inputUpdate when available for compatibility."""
+    input_update = getattr(thumby, "inputUpdate", None)
+    if callable(input_update):
+        input_update()
 
 class Magic8Ball:
     def __init__(self):
@@ -88,14 +125,14 @@ class Magic8Ball:
         # Draw the main ball sprite using fast drawSprite method
         if brightness >= 255:
             # Full brightness - draw normally using optimized drawSprite
-            thumby.display.drawSprite(BALL_SPRITE, x, y, BALL_WIDTH, BALL_HEIGHT)
+            draw_ball_sprite(x, y)
         else:
             # Reduced brightness - still use drawSprite but with dithering pattern
             # Create a dithered version by drawing at reduced opacity
             # Use 128 as threshold (brightness range 0-255): above this, sprite is visible enough
             # to draw normally; at or below, use heavy dithering to simulate fade effect
             if brightness > 128:
-                thumby.display.drawSprite(BALL_SPRITE, x, y, BALL_WIDTH, BALL_HEIGHT)
+                draw_ball_sprite(x, y)
             else:
                 # For very low brightness, use sparse checkerboard dithering
                 # Draw every other pixel in a checkerboard pattern to simulate fading
@@ -211,8 +248,8 @@ class Magic8Ball:
     
     def update(self):
         """Update game state"""
-        # Update input state to ensure button presses are detected
-        thumby.inputUpdate()
+        # Update input state to ensure button presses are detected when supported
+        update_input_state()
         
         if self.state == STATE_IDLE:
             if self.check_any_button():
