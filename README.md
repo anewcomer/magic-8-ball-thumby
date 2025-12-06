@@ -12,18 +12,17 @@ This app recreates the iconic Magic 8 Ball experience on your Thumby. Ask a yes/
   - 10 Affirmative answers
   - 5 Non-committal answers  
   - 5 Negative answers
-- **Smooth Animations**: 
-  - Subtle shake animation when activated
-  - Fade-out and fade-in transitions
-- **Classic Visuals**: 8-ball sprite displayed at the center of the screen
+- **Responsive Animation**: quick shake when activated, then an immediate text reveal
+- **Classic Visuals**: 8-ball sprite displayed at the center of the screen with dithering for low-brightness effects
 - **Text Wrapping**: Phrases are automatically wrapped to fit the small screen (max 10 characters per line)
+- **Firmware Friendly**: Sprite drawing works on both legacy and current Thumby firmware APIs
 
 ## How to Use
 
 1. **Upload the app**: Use the [Thumby Code Editor](https://thumby.us/Code-Editor/) to upload `magic8ball.py` to your Thumby device
 2. **Ask a question**: Think of a yes/no question in your mind
 3. **Activate**: Press any button or D-pad direction
-4. **View answer**: The ball will shake, fade out, and reveal your answer
+4. **View answer**: The ball will shake briefly, then the answer text appears instantly
 5. **Repeat**: Press any button again to return to the 8-ball and ask another question
 
 ## Game Flow
@@ -41,20 +40,9 @@ This app recreates the iconic Magic 8 Ball experience on your Thumby. Ask a yes/
 └────────┬────────┘   │
          │            │
          v            │
-┌─────────────────┐   │
-│   Fade Out      │   │
-└────────┬────────┘   │
-         │            │
-         v            │
-┌─────────────────┐   │
-│   Fade In       │   │
-│  Show Answer    │   │
-└────────┬────────┘   │
-         │            │
-         v            │
-┌─────────────────┐   │
-│  Wait for       │   │
-│  Button Press   │───┘
+┌─────────────────┐
+│ Show Answer     │   │
+│ (wait press)    │───┘
 └─────────────────┘
 ```
 
@@ -64,7 +52,7 @@ This app recreates the iconic Magic 8 Ball experience on your Thumby. Ask a yes/
 - **Language**: MicroPython
 - **Display**: 72×40 pixels monochrome
 - **Controls**: All 6 buttons supported (D-pad: Up/Down/Left/Right, Action: A/B)
-- **Frame Rate**: ~20 FPS
+- **Frame Rate**: ~20 FPS target (throttled by `time.sleep(0.05)`)
 
 ## The 20 Authentic Magic 8 Ball Answers
 
